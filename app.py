@@ -1,28 +1,61 @@
-
 import streamlit as st
 
-# --- 1. PAGE CONFIGURATION ---
+# --- 1. PAGE CONFIGURATION & TRANSLATIONS ---
 st.set_page_config(page_title="AgriConnect", layout="wide")
+
+# Dictionary to handle multiple languages
+text = {
+    "English": {
+        "title": "🌾 Welcome to AgriConnect",
+        "f_box": "👨‍🌾 Farmer",
+        "f_desc": "List your fresh harvest directly to the market and set your own prices.",
+        "feat_box": "🛠️ Helpful Features",
+        "feat_desc": "Check government schemes, order pesticides, and access support.",
+        "b_box": "🛒 Customer",
+        "b_desc": "Browse fresh produce directly from local farms. Get better prices.",
+        "open_btn": "Open Portal"
+    },
+    "తెలుగు": {
+        "title": "🌾 అగ్రి కనెక్ట్‌కు స్వాగతం",
+        "f_box": "👨‍🌾 రైతు",
+        "f_desc": "మీ పంటను నేరుగా మార్కెట్‌లో జాబితా చేయండి మరియు మీ స్వంత ధరలను నిర్ణయించండి.",
+        "feat_box": "🛠️ ఇతర ఫీచర్లు",
+        "feat_desc": "ప్రభుత్వ పథకాలను తనిఖీ చేయండి, పురుగుమందులను ఆర్డర్ చేయండి.",
+        "b_box": "🛒 కస్టమర్",
+        "b_desc": "స్థానిక రైతుల నుండి నేరుగా తాజా కూరగాయలను కొనుగోలు చేయండి.",
+        "open_btn": "తెరువు"
+    },
+    "हिंदी": {
+        "title": "🌾 एग्रीकनेक्ट में आपका स्वागत है",
+        "f_box": "👨‍🌾 किसान",
+        "f_desc": "अपनी ताजा फसल सीधे बाजार में सूचीबद्ध करें और अपनी कीमतें तय करें।",
+        "feat_box": "🛠️ अन्य विशेषताएं",
+        "feat_desc": "सरकारी योजनाओं की जांच करें, कीटनाशकों का ऑर्डर करें।",
+        "b_box": "🛒 ग्राहक",
+        "b_desc": "सीधे स्थानीय खेतों से ताजा उपज ब्राउज़ करें।",
+        "open_btn": "खोलें"
+    }
+}
 
 # --- 2. STATE MANAGEMENT & DATABASE ---
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "Home"
 if 'crop_added' not in st.session_state:
     st.session_state.crop_added = False
-
-# Shopping Carts
 if 'farmer_cart' not in st.session_state:
     st.session_state.farmer_cart = []
 if 'buyer_cart' not in st.session_state:
     st.session_state.buyer_cart = []
+if 'language' not in st.session_state:
+    st.session_state.language = "English"
 
+# Added a "sales" tracker to the items for the dashboard
 if 'market_items' not in st.session_state:
     st.session_state.market_items = [
-        {"farmer": "Ramesh", "crop": "Tomatoes", "price": 30, "stock": 50, "emoji": "🍅"},
-        {"farmer": "Suresh", "crop": "Onions", "price": 35, "stock": 200, "emoji": "🧅"},
+        {"farmer": "Ramesh", "crop": "Tomatoes", "price": 30, "stock": 50, "emoji": "🍅", "sales": 1500},
+        {"farmer": "Suresh", "crop": "Onions", "price": 35, "stock": 200, "emoji": "🧅", "sales": 0},
     ]
 
-# Navigation & Cart Functions
 def change_page(page_name):
     st.session_state.current_page = page_name
     st.session_state.crop_added = False
@@ -37,70 +70,93 @@ def add_to_cart(cart_type, item_name, price):
         st.session_state.buyer_cart.append({"name": item_name, "price": price})
 
 def checkout(cart_type):
-    # Empty the cart and go to success page
     if cart_type == 'farmer':
         st.session_state.farmer_cart = []
     elif cart_type == 'buyer':
         st.session_state.buyer_cart = []
     st.session_state.current_page = "Success"
 
-# --- 3. HOME PAGE ---
+# --- 3. SIDEBAR (LANGUAGE SELECTOR) ---
+st.sidebar.title("🌐 Language / భాష")
+st.session_state.language = st.sidebar.selectbox("Select Display Language:", ["English", "తెలుగు", "हिंदी"])
+lang = st.session_state.language
+
+# --- 4. HOME PAGE ---
 if st.session_state.current_page == "Home":
-    st.title("🌾 Welcome to AgriConnect")
-    st.subheader("Select your portal to continue:")
+    st.title(text[lang]["title"])
     st.write("---") 
     
     col1, col2, col3 = st.columns(3)
-    
     with col1:
         with st.container(border=True):
-            st.title("👨‍🌾 Farmer")
-            st.write("List your fresh harvest directly to the market and set your own prices.")
+            st.title(text[lang]["f_box"])
+            st.write(text[lang]["f_desc"])
             st.write("") 
-            st.button("Open Farmer Portal", on_click=change_page, args=("Farmer",), use_container_width=True, type="primary")
+            st.button(text[lang]["open_btn"], key="btn_f", on_click=change_page, args=("Farmer",), use_container_width=True, type="primary")
             
     with col2:
         with st.container(border=True):
-            st.title("🛠️ Other Helpful Features")
-            st.write("Check government schemes, order pesticides, and access agricultural support tools.")
+            st.title(text[lang]["feat_box"])
+            st.write(text[lang]["feat_desc"])
             st.write("")
-            st.button("Open Features", on_click=change_page, args=("Features",), use_container_width=True, type="primary")
+            st.button(text[lang]["open_btn"], key="btn_feat", on_click=change_page, args=("Features",), use_container_width=True, type="primary")
 
     with col3:
         with st.container(border=True):
-            st.title("🛒 Customer")
-            st.write("Browse fresh produce directly from local farms. Get better prices and quality.")
+            st.title(text[lang]["b_box"])
+            st.write(text[lang]["b_desc"])
             st.write("")
-            st.button("Open Customer Portal", on_click=change_page, args=("Buyer",), use_container_width=True, type="primary")
+            st.button(text[lang]["open_btn"], key="btn_b", on_click=change_page, args=("Buyer",), use_container_width=True, type="primary")
 
-
-# --- 4. FARMER PORTAL ---
+# --- 5. FARMER PORTAL & DASHBOARD ---
 elif st.session_state.current_page == "Farmer":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
-    st.title("👨‍🌾 Farmer Listing Portal")
+    st.title("👨‍🌾 Farmer Portal")
     
-    if not st.session_state.crop_added:
-        st.write("Add your harvest to the live market.")
-        with st.form("add_crop"):
-            farmer_name = st.text_input("Your Name")
-            crop_name = st.text_input("Crop Name (e.g., Apple)")
-            emoji = st.text_input("Crop Emoji (e.g., 🍎)", value="🍎")
-            price = st.number_input("Price per kg (₹)", min_value=1)
-            stock = st.number_input("Available Stock (kg)", min_value=1)
-            submit = st.form_submit_button("List Crop")
+    # New Tabbed Interface for Farmers
+    tab1, tab2 = st.tabs(["➕ Add New Crop", "📊 My Dashboard"])
+    
+    with tab1:
+        if not st.session_state.crop_added:
+            st.write("Add your harvest to the live market.")
+            with st.form("add_crop"):
+                farmer_name = st.text_input("Your Name")
+                crop_name = st.text_input("Crop Name (e.g., Apple)")
+                emoji = st.text_input("Crop Emoji (e.g., 🍎)", value="🍎")
+                price = st.number_input("Price per kg (₹)", min_value=1)
+                stock = st.number_input("Available Stock (kg)", min_value=1)
+                submit = st.form_submit_button("List Crop")
+                
+                if submit and farmer_name and crop_name:
+                    st.session_state.market_items.append({
+                        "farmer": farmer_name, "crop": crop_name, "price": price, "stock": stock, "emoji": emoji, "sales": 0
+                    })
+                    st.session_state.crop_added = True
+                    st.rerun()
+        else:
+            st.success("✅ Crop successfully listed on the live market!")
+            st.button("➕ Add Another Crop", on_click=reset_add_crop, type="primary")
             
-            if submit and farmer_name and crop_name:
-                st.session_state.market_items.append({
-                    "farmer": farmer_name, "crop": crop_name, "price": price, "stock": stock, "emoji": emoji
-                })
-                st.session_state.crop_added = True
-                st.rerun()
-    else:
-        st.success("✅ Crop successfully listed on the live market!")
-        st.button("➕ Add Another Crop", on_click=reset_add_crop, type="primary")
+    with tab2:
+        st.subheader("Farm Analytics")
+        # Simple login simulation
+        dashboard_name = st.text_input("Enter your name to view your dashboard:", value="Ramesh")
+        
+        # Filter the database for only this farmer's crops
+        my_items = [item for item in st.session_state.market_items if item['farmer'].lower() == dashboard_name.lower()]
+        
+        if my_items:
+            total_earnings = sum(item.get('sales', 0) for item in my_items)
+            st.metric(label="Total Projected Earnings", value=f"₹{total_earnings}")
+            
+            st.write("### 📦 Your Active Listings")
+            for item in my_items:
+                with st.container(border=True):
+                    st.write(f"**{item['emoji']} {item['crop']}** | Price: ₹{item['price']}/kg | Stock: {item['stock']}kg")
+        else:
+            st.info("No listings found for this name yet. Go to 'Add New Crop' to get started!")
 
-
-# --- 5. OTHER HELPFUL FEATURES ---
+# --- 6. OTHER HELPFUL FEATURES ---
 elif st.session_state.current_page == "Features":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
     st.title("🛠️ Other Helpful Features")
@@ -139,19 +195,16 @@ elif st.session_state.current_page == "Features":
                 st.subheader("₹450")
                 st.button("Add to Cart", key="npk", on_click=add_to_cart, args=("farmer", "NPK Fertilizer", 450), use_container_width=True)
         
-        # Display Farmer Cart
         if st.session_state.farmer_cart:
             st.write("---")
             st.subheader("🛒 Your Cart")
-            total = 0
+            total = sum(item['price'] for item in st.session_state.farmer_cart)
             for item in st.session_state.farmer_cart:
                 st.write(f"- {item['name']}: ₹{item['price']}")
-                total += item['price']
             st.write(f"**Total: ₹{total}**")
             st.button("Buy Now", on_click=checkout, args=("farmer",), type="primary")
 
-
-# --- 6. BUYER STOREFRONT ---
+# --- 7. BUYER STOREFRONT ---
 elif st.session_state.current_page == "Buyer":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
     st.title("🛒 Live Buyer Storefront")
@@ -163,27 +216,20 @@ elif st.session_state.current_page == "Buyer":
                 st.title(f"{item['emoji']} {item['crop']}")
                 st.caption(f"👨‍🌾 Grown by {item['farmer']}")
                 st.subheader(f"₹{item['price']} / kg")
-                
-                # Pass crop name and price to the cart function
                 st.button("Add to Cart", key=f"buy_{item['farmer']}_{item['crop']}", on_click=add_to_cart, args=("buyer", f"{item['crop']} ({item['farmer']})", item['price']), use_container_width=True)
                 
-    # Display Buyer Cart
     if st.session_state.buyer_cart:
         st.write("---")
         st.subheader("🛒 Your Grocery Cart")
-        total = 0
+        total = sum(item['price'] for item in st.session_state.buyer_cart)
         for item in st.session_state.buyer_cart:
             st.write(f"- {item['name']}: ₹{item['price']}")
-            total += item['price']
         st.write(f"**Total: ₹{total}**")
         st.button("Checkout & Buy", on_click=checkout, args=("buyer",), type="primary")
 
-
-# --- 7. SUCCESS SCREEN ---
+# --- 8. SUCCESS SCREEN ---
 elif st.session_state.current_page == "Success":
-    st.balloons() # Triggers a balloon animation on screen!
+    st.balloons()
     st.title("🎉 Order Placed Successfully!")
     st.success("Your order has been confirmed and is being processed.")
-    st.write("Thank you for using AgriConnect.")
-    st.write("")
     st.button("⬅️ Return to Home", on_click=change_page, args=("Home",), type="primary")
