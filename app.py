@@ -122,7 +122,6 @@ elif st.session_state.current_page == "Farmer":
             st.metric(label="Total Projected Earnings", value=f"₹{total_earnings}")
             
             st.write("### 📈 Live Market Price Trends")
-            # Dynamic Analytics Chart
             chart_data = pd.DataFrame({
                 "Tomatoes (₹/kg)": [25, 28, 30, 32, 30, 29, 30],
                 "Onions (₹/kg)": [40, 38, 35, 34, 35, 36, 35]
@@ -145,7 +144,7 @@ elif st.session_state.current_page == "Farmer":
             st.success(f"🌾 Estimated Harvest: **{acres * yield_per_acre:,.0f} kg**")
             st.info(f"💰 Projected Revenue: **₹{(acres * yield_per_acre) * est_price:,.2f}**")
 
-# --- 6. OTHER HELPFUL FEATURES ---
+# --- 6. OTHER HELPFUL FEATURES (UPDATED) ---
 elif st.session_state.current_page == "Features":
     st.button(text[lang]["back_btn"], on_click=change_page, args=("Home",))
     st.title(text[lang]["feat_title"])
@@ -153,27 +152,77 @@ elif st.session_state.current_page == "Features":
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏛️ Schemes", "🧪 Inputs", "📖 Guide", "🤝 B2B Contracts", "🌿 Crop AI"])
     
     with tab1:
-        st.subheader("PM-KISAN & AIF Support")
-        st.text_input("Enter Aadhar Number:")
-        st.button("Check Status")
+        st.subheader("Financial Support & Subsidies")
+        col1, col2 = st.columns(2)
+        with col1:
+            with st.container(border=True):
+                st.write("### PM-KISAN Samman Nidhi")
+                st.write("Check your ₹6000 annual income support status.")
+                st.button("Check PM-KISAN Status")
+            with st.container(border=True):
+                st.write("### Kisan Credit Card (KCC)")
+                st.write("Apply for short-term crop loans at subsidized interest rates.")
+                st.button("Apply for KCC Loan")
+        with col2:
+            with st.container(border=True):
+                st.write("### Agriculture Infrastructure Fund")
+                st.write("Subsidies for post-harvest management and cold storage.")
+                st.button("Apply for AIF")
+            with st.container(border=True):
+                st.write("### PM Fasal Bima Yojana")
+                st.write("Protect your crops against natural calamities.")
+                st.button("Calculate Insurance Premium")
                 
     with tab2:
         st.subheader("Direct Input Ordering")
-        p_col1, p_col2 = st.columns(2)
+        p_col1, p_col2, p_col3 = st.columns(3)
         with p_col1:
-            st.write("### 🌿 Neem Oil (1L)")
-            st.button("Add Neem Oil - ₹250", on_click=add_to_cart, args=("farmer", "Neem Oil (1L)", 250))
+            with st.container(border=True):
+                st.write("### 🌿 Neem Oil (1L)")
+                st.button("Add - ₹250", key="i1", on_click=add_to_cart, args=("farmer", "Neem Oil (1L)", 250), use_container_width=True)
+            with st.container(border=True):
+                st.write("### 🍅 High-Yield Seeds")
+                st.button("Add - ₹150", key="i4", on_click=add_to_cart, args=("farmer", "Tomato Seeds (50g)", 150), use_container_width=True)
         with p_col2:
-            st.write("### 🛡️ Copper Fungicide")
-            st.button("Add Fungicide - ₹320", on_click=add_to_cart, args=("farmer", "Copper Fungicide", 320))
+            with st.container(border=True):
+                st.write("### 🛡️ Copper Fungicide")
+                st.button("Add - ₹320", key="i2", on_click=add_to_cart, args=("farmer", "Copper Fungicide", 320), use_container_width=True)
+            with st.container(border=True):
+                st.write("### 💧 Drip Emitter Kit")
+                st.button("Add - ₹850", key="i5", on_click=add_to_cart, args=("farmer", "Drip Kit (100pcs)", 850), use_container_width=True)
+        with p_col3:
+            with st.container(border=True):
+                st.write("### ⚡ NPK Fertilizer")
+                st.button("Add - ₹450", key="i3", on_click=add_to_cart, args=("farmer", "NPK Fertilizer", 450), use_container_width=True)
+            with st.container(border=True):
+                st.write("### ⛏️ Hand Cultivator")
+                st.button("Add - ₹200", key="i6", on_click=add_to_cart, args=("farmer", "Hand Cultivator", 200), use_container_width=True)
+                
         if st.session_state.farmer_cart:
+            st.write("---")
             st.write(f"**Cart Total: ₹{sum(item['price'] for item in st.session_state.farmer_cart)}**")
             st.button("Buy Now", on_click=checkout, args=("farmer",), type="primary")
 
     with tab3:
         st.subheader("Farming Best Practices")
-        with st.expander("🌱 Soil Preparation"): st.write("- Ensure deep ploughing.\n- Apply well-rotted manure.")
-        with st.expander("💧 Efficient Water Management"): st.write("- Adopt drip irrigation to save up to 40% water.")
+        with st.expander("🌱 Soil Preparation & Testing"): 
+            st.write("- Ensure deep ploughing to expose soil pests to sunlight.")
+            st.write("- Test soil pH and nutrient levels every 2 years.")
+            st.write("- Apply well-rotted farmyard manure before sowing.")
+        with st.expander("💧 Efficient Water Management"): 
+            st.write("- Adopt drip or sprinkler irrigation to save up to 40% water.")
+            st.write("- Use mulching around crops to retain soil moisture and reduce weeds.")
+        with st.expander("🛡️ Integrated Pest Management (IPM)"):
+            st.write("- Use sticky traps and pheromone traps to monitor pest populations.")
+            st.write("- Encourage natural predators like ladybugs and spiders in your field.")
+            st.write("- Apply chemical pesticides only as a targeted, last resort.")
+        with st.expander("🌾 Crop Rotation & Intercropping"):
+            st.write("- Rotate cereals with legumes (like lentils) to naturally restore soil nitrogen.")
+            st.write("- Grow marigolds alongside tomatoes to deter root-knot nematodes.")
+        with st.expander("📦 Post-Harvest Storage"):
+            st.write("- Dry grains thoroughly to below 10-12% moisture before storing.")
+            st.write("- Use hermetic bags to prevent weevil and insect infestations.")
+            st.write("- Store root vegetables in cool, dry, and well-ventilated crates.")
 
     with tab4:
         st.subheader("Active Wholesale Contracts")
@@ -188,7 +237,7 @@ elif st.session_state.current_page == "Features":
         uploaded_file = st.file_uploader("Upload leaf image (JPG/PNG)", type=["jpg", "png"])
         if uploaded_file and st.button("Analyze Image", type="primary"):
             with st.spinner("Scanning for pathogens using AgriConnect AI..."):
-                time.sleep(2.5) # Simulated AI loading delay
+                time.sleep(2.5) 
             st.error("⚠️ **Detected:** Early Blight (Alternaria solani) - 87% Confidence")
             st.success("✅ **Recommended Action:** Apply Copper Fungicide immediately. (Available in Inputs tab)")
 
@@ -230,7 +279,7 @@ elif st.session_state.current_page == "Success":
         st.subheader("🧾 Auto-Generated Digital Invoice")
         total = sum(item['price'] for item in st.session_state.last_order)
         plat_fee = total * 0.02
-        savings = total * 0.20 # Simulating 20% savings vs retail
+        savings = total * 0.20 
         
         st.code(f"""
 ====================================
@@ -255,4 +304,4 @@ directly from local farmers!
 ====================================
         """)
         
-    st.button("⬅️ Return to Home", on_click=change_page, args=("Home",), type="primary")
+    st.button(text[lang]["back_btn"], on_click=change_page, args=("Home",), type="primary")
