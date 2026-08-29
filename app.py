@@ -3,7 +3,6 @@ import streamlit as st
 # --- 1. PAGE CONFIGURATION & TRANSLATIONS ---
 st.set_page_config(page_title="AgriConnect", layout="wide")
 
-# Dictionary to handle multiple languages
 text = {
     "English": {
         "title": "🌾 Welcome to AgriConnect",
@@ -49,11 +48,11 @@ if 'buyer_cart' not in st.session_state:
 if 'language' not in st.session_state:
     st.session_state.language = "English"
 
-# Added a "sales" tracker to the items for the dashboard
+# Added ratings and order history for the Trust System
 if 'market_items' not in st.session_state:
     st.session_state.market_items = [
-        {"farmer": "Ramesh", "crop": "Tomatoes", "price": 30, "stock": 50, "emoji": "🍅", "sales": 1500},
-        {"farmer": "Suresh", "crop": "Onions", "price": 35, "stock": 200, "emoji": "🧅", "sales": 0},
+        {"farmer": "Ramesh", "crop": "Tomatoes", "price": 30, "stock": 50, "emoji": "🍅", "sales": 1500, "rating": 4.8, "orders": 120},
+        {"farmer": "Suresh", "crop": "Onions", "price": 35, "stock": 200, "emoji": "🧅", "sales": 0, "rating": 4.5, "orders": 85},
     ]
 
 def change_page(page_name):
@@ -113,8 +112,7 @@ elif st.session_state.current_page == "Farmer":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
     st.title("👨‍🌾 Farmer Portal")
     
-    # New Tabbed Interface for Farmers
-    tab1, tab2 = st.tabs(["➕ Add New Crop", "📊 My Dashboard"])
+    tab1, tab2, tab3 = st.tabs(["➕ Add New Crop", "📊 My Dashboard", "🧮 Profit Estimator"])
     
     with tab1:
         if not st.session_state.crop_added:
@@ -129,7 +127,7 @@ elif st.session_state.current_page == "Farmer":
                 
                 if submit and farmer_name and crop_name:
                     st.session_state.market_items.append({
-                        "farmer": farmer_name, "crop": crop_name, "price": price, "stock": stock, "emoji": emoji, "sales": 0
+                        "farmer": farmer_name, "crop": crop_name, "price": price, "stock": stock, "emoji": emoji, "sales": 0, "rating": "New", "orders": 0
                     })
                     st.session_state.crop_added = True
                     st.rerun()
@@ -139,29 +137,38 @@ elif st.session_state.current_page == "Farmer":
             
     with tab2:
         st.subheader("Farm Analytics")
-        # Simple login simulation
         dashboard_name = st.text_input("Enter your name to view your dashboard:", value="Ramesh")
-        
-        # Filter the database for only this farmer's crops
         my_items = [item for item in st.session_state.market_items if item['farmer'].lower() == dashboard_name.lower()]
         
         if my_items:
             total_earnings = sum(item.get('sales', 0) for item in my_items)
             st.metric(label="Total Projected Earnings", value=f"₹{total_earnings}")
-            
             st.write("### 📦 Your Active Listings")
             for item in my_items:
                 with st.container(border=True):
                     st.write(f"**{item['emoji']} {item['crop']}** | Price: ₹{item['price']}/kg | Stock: {item['stock']}kg")
         else:
             st.info("No listings found for this name yet. Go to 'Add New Crop' to get started!")
+            
+    with tab3:
+        st.subheader("Yield & Profit Estimator")
+        st.write("Calculate your potential earnings before you plant.")
+        acres = st.number_input("Land Size (Acres)", min_value=0.1, value=1.0)
+        yield_per_acre = st.number_input("Expected Yield per Acre (kg)", min_value=50, value=2000)
+        est_price = st.number_input("Expected Selling Price (₹/kg)", min_value=1, value=30)
+        
+        if st.button("Calculate Expected Revenue", type="primary"):
+            total_yield = acres * yield_per_acre
+            revenue = total_yield * est_price
+            st.success(f"🌾 Estimated Harvest: **{total_yield:,.0f} kg**")
+            st.info(f"💰 Projected Revenue: **₹{revenue:,.2f}**")
 
 # --- 6. OTHER HELPFUL FEATURES ---
 elif st.session_state.current_page == "Features":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
     st.title("🛠️ Other Helpful Features")
     
-    tab1, tab2 = st.tabs(["🏛️ Government Schemes", "🧪 Order Pesticides & Inputs"])
+    tab1, tab2, tab3 = st.tabs(["🏛️ Government Schemes", "🧪 Order Pesticides & Inputs", "📖 Best Practices Guide"])
     
     with tab1:
         st.subheader("Financial Support & Subsidies")
@@ -204,19 +211,50 @@ elif st.session_state.current_page == "Features":
             st.write(f"**Total: ₹{total}**")
             st.button("Buy Now", on_click=checkout, args=("farmer",), type="primary")
 
+    with tab3:
+        st.subheader("Farming Best Practices")
+        with st.expander("🌱 Soil Preparation for Kharif Crops"):
+            st.write("- Ensure deep ploughing to expose soil pests to sunlight.")
+            st.write("- Apply well-rotted farmyard manure or compost before sowing.")
+            st.write("- Test soil pH and apply lime if acidic.")
+        with st.expander("🛡️ Homemade Organic Pest Control (Neem Extract)"):
+            st.write("- Crush 5kg of neem leaves and soak in 100L of water overnight.")
+            st.write("- Filter the extract and mix with a little soap solution.")
+            st.write("- Spray directly on crops to deter aphids and caterpillars.")
+        with st.expander("💧 Efficient Water Management"):
+            st.write("- Adopt drip irrigation to save up to 40% water.")
+            st.write("- Mulch around plant bases to retain soil moisture and prevent weed growth.")
+
 # --- 7. BUYER STOREFRONT ---
 elif st.session_state.current_page == "Buyer":
     st.button("⬅️ Back to Home", on_click=change_page, args=("Home",))
     st.title("🛒 Live Buyer Storefront")
     
+    # Smart Search & Filters
+    col_search, col_filter = st.columns([2, 1])
+    with col_search:
+        search_query = st.text_input("🔍 Search for a crop (e.g., Tomatoes)")
+    with col_filter:
+        max_price = st.slider("Max Price (₹/kg)", min_value=10, max_value=200, value=200)
+
+    # Filter logic
+    filtered_items = [
+        item for item in st.session_state.market_items 
+        if (search_query.lower() in item['crop'].lower()) and (item['price'] <= max_price)
+    ]
+    
     cols = st.columns(3)
-    for index, item in enumerate(reversed(st.session_state.market_items)):
+    for index, item in enumerate(reversed(filtered_items)):
         with cols[index % 3]:
             with st.container(border=True):
                 st.title(f"{item['emoji']} {item['crop']}")
-                st.caption(f"👨‍🌾 Grown by {item['farmer']}")
+                # Trust & Ratings Display
+                st.caption(f"👨‍🌾 Grown by {item['farmer']} | ⭐ {item.get('rating', 'New')} ({item.get('orders', 0)} orders)")
                 st.subheader(f"₹{item['price']} / kg")
                 st.button("Add to Cart", key=f"buy_{item['farmer']}_{item['crop']}", on_click=add_to_cart, args=("buyer", f"{item['crop']} ({item['farmer']})", item['price']), use_container_width=True)
+                
+    if not filtered_items:
+        st.warning("No crops found matching your search and price criteria.")
                 
     if st.session_state.buyer_cart:
         st.write("---")
