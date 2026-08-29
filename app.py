@@ -144,7 +144,7 @@ elif st.session_state.current_page == "Farmer":
             st.success(f"🌾 Estimated Harvest: **{acres * yield_per_acre:,.0f} kg**")
             st.info(f"💰 Projected Revenue: **₹{(acres * yield_per_acre) * est_price:,.2f}**")
 
-# --- 6. OTHER HELPFUL FEATURES (UPDATED) ---
+# --- 6. OTHER HELPFUL FEATURES ---
 elif st.session_state.current_page == "Features":
     st.button(text[lang]["back_btn"], on_click=change_page, args=("Home",))
     st.title(text[lang]["feat_title"])
@@ -198,8 +198,12 @@ elif st.session_state.current_page == "Features":
                 st.write("### ⛏️ Hand Cultivator")
                 st.button("Add - ₹200", key="i6", on_click=add_to_cart, args=("farmer", "Hand Cultivator", 200), use_container_width=True)
                 
+        # FIXED: Now prints out the actual item names before the total
         if st.session_state.farmer_cart:
             st.write("---")
+            st.subheader("🛒 Your Cart")
+            for item in st.session_state.farmer_cart:
+                st.write(f"- {item['name']}: ₹{item['price']}")
             st.write(f"**Cart Total: ₹{sum(item['price'] for item in st.session_state.farmer_cart)}**")
             st.button("Buy Now", on_click=checkout, args=("farmer",), type="primary")
 
@@ -246,6 +250,14 @@ elif st.session_state.current_page == "Buyer":
     st.button(text[lang]["back_btn"], on_click=change_page, args=("Home",))
     st.title(text[lang]["b_title"])
     
+    # NEW: Active Delivery Tracking widget
+    st.subheader("🚚 Active Deliveries")
+    with st.container(border=True):
+        st.write("**Order #AC-8492** • Arriving Today at 4:30 PM")
+        st.progress(75) # Shows a visual 75% completion bar
+        st.caption("Status: Out for delivery | Delivery Partner: Ravi (📞 9876543210)")
+    st.write("---")
+
     col_search, col_filter = st.columns([2, 1])
     with col_search: search_query = st.text_input("🔍 Search for a crop (e.g., Tomatoes)")
     with col_filter: max_price = st.slider("Max Price (₹/kg)", min_value=10, max_value=200, value=200)
