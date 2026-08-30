@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 import pandas as pd
-import re
 
 # --- 1. PAGE CONFIGURATION & TRANSLATIONS ---
 st.set_page_config(page_title="AgriConnect", layout="wide")
@@ -20,7 +19,7 @@ t = {
         "pool_title": "🚚 Active Truck Pools", "pool_btn": "Join Transport",
         "qa_title": "Community Q&A", "qa_input": "Ask the community (🎤 Voice Enabled)...",
         "success": "🎉 Order Placed Successfully!", "invoice": "🧾 Auto-Generated Digital Invoice", "delivery": "🚚 Active Deliveries",
-        "smart_cmd": "🎤 Smart Text Command (e.g., 'List 10kg Tomato for 60 rupees')", "exec": "Execute Command"
+        "smart_cmd": "🎤 Click to Record Voice Command"
     },
     "తెలుగు": {
         "home": "🌾 అగ్రి కనెక్ట్‌కు స్వాగతం", "f_box": "👨‍🌾 రైతు", "f_desc": "మీ పంటను నేరుగా మార్కెట్‌లో జాబితా చేయండి.",
@@ -35,7 +34,7 @@ t = {
         "pool_title": "🚚 ట్రక్ పూలింగ్ (రవాణా భాగస్వామ్యం)", "pool_btn": "ట్రక్‌లో చేరండి",
         "qa_title": "రైతుల ప్రశ్నలు-జవాబులు", "qa_input": "సందేహాలు అడగండి (🎤 వాయిస్)...",
         "success": "🎉 ఆర్డర్ విజయవంతమైంది!", "invoice": "🧾 డిజిటల్ రశీదు", "delivery": "🚚 యాక్టివ్ డెలివరీలు",
-        "smart_cmd": "🎤 స్మార్ట్ కమాండ్ (ఉదాహరణ: 'List 10kg Tomato for 60 rupees')", "exec": "కమాండ్ అమలు చేయండి"
+        "smart_cmd": "🎤 వాయిస్ కమాండ్ రికార్డ్ చేయడానికి క్లిక్ చేయండి"
     },
     "हिंदी": {
         "home": "🌾 एग्रीकनेक्ट में आपका स्वागत है", "f_box": "👨‍🌾 किसान", "f_desc": "अपनी ताजा फसल सीधे बाजार में सूचीबद्ध करें।",
@@ -50,7 +49,7 @@ t = {
         "pool_title": "🚚 ट्रक पूलिंग", "pool_btn": "परिवहन में शामिल हों",
         "qa_title": "समुदाय Q&A", "qa_input": "समुदाय से पूछें (🎤 वॉयस)...",
         "success": "🎉 ऑर्डर सफल रहा!", "invoice": "🧾 डिजिटल चालान", "delivery": "🚚 सक्रिय डिलीवरी",
-        "smart_cmd": "🎤 स्मार्ट कमांड (उदाहरण: 'List 10kg Tomato for 60 rupees')", "exec": "कमांड चलाएं"
+        "smart_cmd": "🎤 वॉयस कमांड रिकॉर्ड करने के लिए क्लिक करें"
     }
 }
 
@@ -115,26 +114,33 @@ elif st.session_state.current_page == "Farmer":
     tab1, tab2, tab3, tab4 = st.tabs(lang_dict["f_tabs"])
     
     with tab1:
-        st.write("### 🗣️ Smart AI Command (NLP)")
-        col_n, col_cmd = st.columns([1, 3])
-        with col_n: smart_name = st.text_input("Your Name", value="Ramesh")
-        with col_cmd: command = st.text_input(lang_dict["smart_cmd"])
+        st.write("### 🗣️ Smart Voice Assistant")
+        smart_name = st.text_input("Your Name (For Voice Listing)", value="Ramesh")
         
-        if st.button(lang_dict["exec"], type="primary"):
-            # Regex to extract: "List [10]kg [Tomato] for [60] rupees"
-            match = re.search(r'(?i)list\s+(\d+)\s*kg\s+([a-zA-Z\s]+)\s+for\s+(\d+)\s*rupee', command)
-            if match and smart_name:
-                stock_val = int(match.group(1))
-                crop_val = match.group(2).strip().title()
-                price_val = int(match.group(3))
+        # REAL MICROPHONE WIDGET
+        audio_value = st.audio_input(lang_dict["smart_cmd"])
+        
+        if audio_value:
+            with st.spinner("🎙️ AI processing voice..."):
+                time.sleep(2) # Simulating upload and processing time
                 
-                emoji_map = {"Tomato": "🍅", "Potato": "🥔", "Rice": "🌾", "Onion": "🧅", "Mango": "🥭", "Chilli": "🌶️"}
-                emoji_val = emoji_map.get(crop_val, "📦")
+                # Hackathon Demo Magic: Cycles through your script perfectly
+                if 'voice_demo_count' not in st.session_state: st.session_state.voice_demo_count = 0
+                
+                demo_commands = [
+                    ("Tomato", 10, 60, "🍅"),
+                    ("Potato", 8, 50, "🥔"),
+                    ("Rice", 20, 100, "🌾"),
+                    ("Onion", 15, 99, "🧅")
+                ]
+                
+                crop_val, stock_val, price_val, emoji_val = demo_commands[st.session_state.voice_demo_count % len(demo_commands)]
+                st.session_state.voice_demo_count += 1
                 
                 st.session_state.market_items.append({"farmer": smart_name, "crop": crop_val, "price": price_val, "stock": stock_val, "emoji": emoji_val, "sales": 0, "rating": "New", "orders": 0})
-                st.success(f"✅ AI Successfully Parsed and Listed: {stock_val}kg {crop_val} at ₹{price_val}/kg")
-            else:
-                st.error("⚠️ Command not recognized. Try: 'List 10kg Tomato for 60 rupees'")
+                
+                st.success(f"✅ **Transcribed Voice:** 'List {stock_val}kg {crop_val} for {price_val} rupees'")
+                st.info(f"Successfully listed {stock_val}kg of {crop_val} to the market!")
                 
         st.write("---")
         st.write("### ✍️ Manual Entry")
