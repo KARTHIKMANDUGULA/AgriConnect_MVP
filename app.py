@@ -1,38 +1,48 @@
 import streamlit as st
 import time
 import pandas as pd
+import sqlite3
+from sklearn.ensemble import RandomForestRegressor
 
 # ==========================================
-# 1. PAGE CONFIGURATION & TRANSLATIONS
+# 1. DATABASE & AI ENGINE
+# ==========================================
+def get_db_connection():
+    conn = sqlite3.connect('agriconnect.db', check_same_thread=False, timeout=10)
+    return conn
+
+@st.cache_resource
+def train_price_ai():
+    data = {
+        'month': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        'rain_mm': [10, 5, 20, 40, 60, 120, 150, 130, 90, 40, 15, 5],
+        'temp_c': [22, 25, 29, 33, 35, 30, 28, 27, 28, 26, 24, 21],
+        'demand_index': [80, 85, 90, 85, 95, 110, 120, 115, 100, 90, 85, 80],
+        'price_per_kg': [20, 22, 25, 24, 30, 45, 50, 48, 35, 28, 24, 21]
+    }
+    df = pd.DataFrame(data)
+    X = df[['month', 'rain_mm', 'temp_c', 'demand_index']]
+    y = df['price_per_kg']
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X, y)
+    return model
+
+db_conn = get_db_connection()
+ai_model = train_price_ai()
+
+# ==========================================
+# 2. PAGE CONFIGURATION & TRANSLATIONS
 # ==========================================
 st.set_page_config(page_title="AgriConnect", layout="wide")
 
 t = {
-    "English": {
-        "demand": "🚨 High Demand Alert: Onion searches are up 40% this week. Consider planting for higher margins!",
-        "search_ph": "🔍 Search for a crop (🎤 Voice Enabled)", "voice_btn": "🎤 Speak",
-        "add_crop": "List Crop", "calc": "Calculate Expected Revenue", "cart_total": "Cart Total: ₹",
-        "pool_btn": "Join Transport", "qa_input": "Ask the community (🎤 Voice Enabled)...",
-        "smart_cmd": "🎤 Click to Record Voice Command", "buy_now": "Buy Inputs Now", "checkout": "Checkout & Buy"
-    },
-    "తెలుగు": {
-        "demand": "🚨 డిమాండ్ అలర్ట్: ఉల్లిపాయల అన్వేషణ 40% పెరిగింది. ఎక్కువ లాభం కోసం ప్లాన్ చేయండి!",
-        "search_ph": "🔍 పంటలను వెతకండి (🎤 వాయిస్)", "voice_btn": "🎤 మాట్లాడండి",
-        "add_crop": "పంటను జోడించు", "calc": "రెవెన్యూ లెక్కించు", "cart_total": "మొత్తం: ₹",
-        "pool_btn": "ట్రక్‌లో చేరండి", "qa_input": "సందేహాలు అడగండి (🎤 వాయిస్)...",
-        "smart_cmd": "🎤 వాయిస్ కమాండ్ రికార్డ్ చేయడానికి క్లిక్ చేయండి", "buy_now": "కొనుగోలు చేయండి", "checkout": "చెక్అవుట్"
-    },
-    "हिंदी": {
-        "demand": "🚨 डिमांड अलर्ट: प्याज की खोज 40% बढ़ गई है। अधिक लाभ के लिए योजना बनाएं!",
-        "search_ph": "🔍 फसल खोजें (🎤 वॉयस)", "voice_btn": "🎤 बोलें",
-        "add_crop": "फसल जोड़ें", "calc": "राजस्व की गणना करें", "cart_total": "कुल: ₹",
-        "pool_btn": "परिवहन में शामिल हों", "qa_input": "समुदाय से पूछें (🎤 वॉयस)...",
-        "smart_cmd": "🎤 वॉयस कमांड रिकॉर्ड करने के लिए क्लिक करें", "buy_now": "अभी खरीदें", "checkout": "चेकआउट"
-    }
+    "English": {"demand": "🚨 High Demand Alert: Onion searches are up 40% this week. Consider planting for higher margins!", "search_lbl": "Search Available Produce", "search_ph": "Search crops (e.g., Tomato, Apple)...", "price_lbl": "Price Range / Budget (₹/kg)", "voice_btn": "🎤 Speak", "add_crop": "List Crop", "calc": "Run AI Price Forecast", "cart_total": "Cart Total: ₹", "pool_btn": "Join Transport", "buy_now": "Buy Inputs Now", "checkout": "Checkout & Buy"},
+    "తెలుగు": {"demand": "🚨 డిమాండ్ అలర్ట్: ఉల్లిపాయల అన్వేషణ 40% పెరిగింది. ఎక్కువ లాభం కోసం ప్లాన్ చేయండి!", "search_lbl": "పంటలను వెతకండి", "search_ph": "పంట పేరు రాయండి (ఉదా: Tomato)...", "price_lbl": "ధర పరిమితి (₹/కిలో)", "voice_btn": "🎤 మాట్లాడండి", "add_crop": "పంటను జోడించు", "calc": "AI విశ్లేషణను అమలు చేయండి", "cart_total": "మొత్తం: ₹", "pool_btn": "ట్రక్‌లో చేరండి", "buy_now": "కొనుగోలు చేయండి", "checkout": "చెక్అవుట్"},
+    "हिंदी": {"demand": "🚨 डिमांड अलर्ट: प्याज की खोज 40% बढ़ गई है। अधिक लाभ के लिए योजना बनाएं!", "search_lbl": "फसल खोजें", "search_ph": "फसल का नाम लिखें (उदा. Tomato)...", "price_lbl": "मूल्य सीमा (₹/किग्रा)", "voice_btn": "🎤 बोलें", "add_crop": "फसल जोड़ें", "calc": "एआई मूल्य पूर्वानुमान चलाएं", "cart_total": "कुल: ₹", "pool_btn": "परिवहन में शामिल हों", "buy_now": "अभी खरीदें", "checkout": "चेकआउट"}
 }
 
 # ==========================================
-# 2. STATE MANAGEMENT 
+# 3. STATE MANAGEMENT 
 # ==========================================
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'user_role' not in st.session_state: st.session_state.user_role = None
@@ -44,18 +54,22 @@ if 'crop_added' not in st.session_state: st.session_state.crop_added = False
 if 'farmer_cart' not in st.session_state: st.session_state.farmer_cart = []
 if 'buyer_cart' not in st.session_state: st.session_state.buyer_cart = []
 if 'last_order' not in st.session_state: st.session_state.last_order = []
-if 'market_items' not in st.session_state:
-    st.session_state.market_items = [
-        {"farmer": "Ramesh", "crop": "Tomatoes", "price": 30, "stock": 500, "emoji": "🍅", "sales": 15000, "rating": 4.8, "orders": 120},
-        {"farmer": "Suresh", "crop": "Onions", "price": 35, "stock": 200, "emoji": "🧅", "sales": 7000, "rating": 4.5, "orders": 85},
+if 'order_type' not in st.session_state: st.session_state.order_type = ""
+
+# Persistent Q&A in session state
+if 'qa_threads' not in st.session_state:
+    st.session_state.qa_threads = [
+        {"author": "Suresh (Medchal)", "question": "What is the best treatment for early tomato blight?", "answer": "Copper oxychloride spray (2.5g/L) during early vegetative stages helps control fungal spread."},
+        {"author": "Naveen (Warangal)", "question": "Are neem oil sprays effective against aphids?", "answer": "Yes, use cold-pressed 10,000 PPM neem oil mixed with 1ml liquid soap per liter in early morning hours."}
     ]
 
-USER_DB = {
-    "ramesh": ["pass123", "Farmer"],
-    "suresh": ["pass123", "Farmer"],
-    "anita": ["buyer123", "Customer"],
-    "rahul": ["buyer123", "Customer"]
-}
+def fetch_market_items():
+    cursor = db_conn.cursor()
+    cursor.execute("SELECT farmer_username, crop_name, price_per_kg, stock_kg, emoji FROM Inventory")
+    rows = cursor.fetchall()
+    return [{"farmer": r[0], "crop": r[1], "price": r[2], "stock": r[3], "emoji": r[4], "sales": 1500, "rating": 4.8, "orders": 12} for r in rows]
+
+st.session_state.market_items = fetch_market_items()
 
 def set_login_step(step): st.session_state.login_step = step
 def change_page(page_name): 
@@ -66,6 +80,7 @@ def add_to_cart(cart_type, item_name, price): st.session_state[f"{cart_type}_car
 def checkout(cart_type):
     st.session_state.last_order = st.session_state[f"{cart_type}_cart"].copy()
     st.session_state[f"{cart_type}_cart"] = []
+    st.session_state.order_type = cart_type
     st.session_state.current_page = "Success"
 def logout_user():
     st.session_state.authenticated = False
@@ -76,20 +91,22 @@ def logout_user():
 
 def login_user(user, pwd, role):
     u = user.strip().lower()
-    if u in USER_DB:
-        if pwd == USER_DB[u][0] and USER_DB[u][1] == role:
+    cursor = db_conn.cursor()
+    cursor.execute("SELECT password, role FROM Users WHERE username=?", (u,))
+    result = cursor.fetchone()
+    if result:
+        correct_pwd, registered_role = result
+        if pwd == correct_pwd and registered_role == role:
             st.session_state.authenticated = True
             st.session_state.user_role = role
             st.session_state.username = user.strip().title()
             st.session_state.current_page = "Farmer_Hub" if role == "Farmer" else "Buyer"
             st.rerun()
-        else:
-            st.error("❌ Invalid password or incorrect role chosen.")
-    else:
-        st.error("❌ Username not found.")
+        else: st.error("❌ Invalid password or incorrect role chosen.")
+    else: st.error("❌ Username not found in local database.")
 
 # ==========================================
-# 3. SIDEBAR
+# 4. SIDEBAR
 # ==========================================
 st.sidebar.title("🌐 Language / భాష")
 st.session_state.language = st.sidebar.selectbox("Select Display Language:", ["English", "తెలుగు", "हिंदी"])
@@ -103,24 +120,21 @@ if st.session_state.authenticated:
     st.sidebar.button("🚪 Logout", on_click=logout_user, use_container_width=True)
 
 # ==========================================
-# 4. START SCREEN (LOGIN)
+# 5. START SCREEN (LOGIN)
 # ==========================================
 if not st.session_state.authenticated:
     st.title("🌾 Welcome to AgriConnect")
     st.write("Select your portal to continue.")
     st.write("---")
-    
     if st.session_state.login_step == "Select":
         col1, col2 = st.columns(2)
         with col1:
             with st.container(border=True):
                 st.title("👨‍🌾 Farmer Access")
-                st.write("List your harvest and access farm tools.")
                 st.button("Open Farmer Portal", on_click=set_login_step, args=("Farmer_Login",), use_container_width=True, type="primary")
         with col2:
             with st.container(border=True):
                 st.title("🛒 Customer Access")
-                st.write("Buy fresh produce directly from local farms.")
                 st.button("Open Customer Portal", on_click=set_login_step, args=("Customer_Login",), use_container_width=True, type="primary")
 
     elif st.session_state.login_step == "Farmer_Login":
@@ -140,14 +154,12 @@ if not st.session_state.authenticated:
                 b_u = st.text_input("Username", placeholder="Enter username (e.g., anita)")
                 b_p = st.text_input("Password", type="password", placeholder="Enter password")
                 if st.form_submit_button("Sign In", type="primary", use_container_width=True): login_user(b_u, b_p, "Customer")
-
     st.stop()
 
 # ==========================================
-# 5. FARMER ROUTES 
+# 6. FARMER ROUTES 
 # ==========================================
 if st.session_state.user_role == "Farmer":
-    
     if st.session_state.current_page == "Farmer_Hub":
         st.title(f"👋 Welcome back, {st.session_state.username}")
         st.write("---")
@@ -155,32 +167,32 @@ if st.session_state.user_role == "Farmer":
         with col1:
             with st.container(border=True):
                 st.title("📊 Farmer Dashboard")
-                st.write("Manage your crops, track market prices, and arrange truck pooling.")
                 st.button("Open Dashboard", on_click=change_page, args=("Farmer_Dashboard",), use_container_width=True, type="primary")
         with col2:
             with st.container(border=True):
                 st.title("🛠️ Helpful Features")
-                st.write("Access Government Schemes, Input Ordering, AI, and Guides.")
                 st.button("Open Features", on_click=change_page, args=("Farmer_Features",), use_container_width=True, type="primary")
 
     elif st.session_state.current_page == "Farmer_Dashboard":
         st.button("⬅️ Back to Farmer Hub", on_click=change_page, args=("Farmer_Hub",))
         st.title("📊 Farmer Dashboard")
         st.warning(lang_dict["demand"])
-        tab1, tab2, tab3, tab4 = st.tabs(["➕ Add New Crop", "📈 My Analytics", "🧮 Profit Estimator", "🚚 Truck Pooling"])
+        tab1, tab2, tab3, tab4 = st.tabs(["➕ Add New Crop", "📈 My Analytics", "🧠 AI Profit Estimator", "🚚 Truck Pooling"])
         
         with tab1:
             st.write("### 🗣️ Smart Voice Assistant")
             smart_name = st.text_input("Your Name (For Voice Listing)", value=st.session_state.username)
-            audio_value = st.audio_input(lang_dict["smart_cmd"])
+            audio_value = st.audio_input("🎤 Click to Record Voice Command")
             if audio_value:
                 with st.spinner("🎙️ AI processing voice..."):
                     time.sleep(2)
                     if 'voice_demo_count' not in st.session_state: st.session_state.voice_demo_count = 0
-                    demo_commands = [("Tomato", 10, 60, "🍅"), ("Potato", 8, 50, "🥔"), ("Rice", 20, 100, "🌾"), ("Onion", 15, 99, "🧅")]
+                    demo_commands = [("Tomato", 10, 60, "🍅"), ("Potato", 8, 50, "🥔"), ("Rice", 20, 100, "🌾")]
                     crop_val, stock_val, price_val, emoji_val = demo_commands[st.session_state.voice_demo_count % len(demo_commands)]
                     st.session_state.voice_demo_count += 1
-                    st.session_state.market_items.append({"farmer": smart_name, "crop": crop_val, "price": price_val, "stock": stock_val, "emoji": emoji_val, "sales": 0, "rating": "New", "orders": 0})
+                    cursor = db_conn.cursor()
+                    cursor.execute("INSERT INTO Inventory (farmer_username, crop_name, price_per_kg, stock_kg, emoji) VALUES (?, ?, ?, ?, ?)", (smart_name, crop_val, price_val, stock_val, emoji_val))
+                    db_conn.commit()
                     st.success(f"✅ **Transcribed Voice:** 'List {stock_val}kg {crop_val} for {price_val} rupees'")
             st.write("---")
             if not st.session_state.crop_added:
@@ -191,67 +203,49 @@ if st.session_state.user_role == "Farmer":
                     price = st.number_input("Price per kg (₹)", min_value=1)
                     stock = st.number_input("Available Stock (kg)", min_value=1)
                     if st.form_submit_button(lang_dict["add_crop"]) and crop_name:
-                        st.session_state.market_items.append({"farmer": farmer_name, "crop": crop_name, "price": price, "stock": stock, "emoji": emoji, "sales": 0, "rating": "New", "orders": 0})
+                        cursor = db_conn.cursor()
+                        cursor.execute("INSERT INTO Inventory (farmer_username, crop_name, price_per_kg, stock_kg, emoji) VALUES (?, ?, ?, ?, ?)", (farmer_name, crop_name, price, stock, emoji))
+                        db_conn.commit()
                         st.session_state.crop_added = True
                         st.rerun()
             else:
-                st.success("✅ Crop successfully listed!")
+                st.success("✅ Crop successfully listed to local database!")
                 st.button("➕ Add Another Crop", on_click=reset_add_crop)
                 
         with tab2:
             st.subheader("📈 Farm Analytics & Performance")
             my_items = [item for item in st.session_state.market_items if item['farmer'].lower() == st.session_state.username.lower()]
-            
             if my_items:
                 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
                 total_earnings = sum(item.get('sales', 0) for item in my_items)
-                total_stock = sum(item['stock'] for item in my_items)
-                total_orders = sum(item.get('orders', 0) for item in my_items)
-                
-                valid_ratings = [float(item['rating']) for item in my_items if item.get('rating') != 'New']
-                avg_rating = sum(valid_ratings) / len(valid_ratings) if valid_ratings else 5.0
-                
                 with kpi1: st.metric("Total Revenue", f"₹{total_earnings:,.2f}", "+12% vs last month")
-                with kpi2: st.metric("Total Active Stock", f"{total_stock} kg")
-                with kpi3: st.metric("Completed Orders", f"{total_orders}")
-                with kpi4: st.metric("Customer Rating", f"⭐ {avg_rating:.1f}")
-                
+                with kpi2: st.metric("Active Stock", f"{sum(item['stock'] for item in my_items)} kg")
+                with kpi3: st.metric("Orders", "12")
+                with kpi4: st.metric("Rating", "⭐ 4.8")
                 st.write("---")
-                chart_col, data_col = st.columns(2)
-                
-                with chart_col:
-                    st.write("### 📊 Current Inventory Breakdown")
-                    inventory_data = pd.DataFrame([{"Crop": item["crop"], "Stock (kg)": item["stock"]} for item in my_items]).set_index("Crop")
-                    st.bar_chart(inventory_data)
-                
-                with data_col:
+                colA, colB = st.columns(2)
+                with colA:
+                    st.write("### 📊 Inventory Breakdown")
+                    st.bar_chart(pd.DataFrame([{"Crop": i["crop"], "Stock (kg)": i["stock"]} for i in my_items]).set_index("Crop"))
+                with colB:
                     st.write("### 📜 Recent Transactions")
-                    st.dataframe(pd.DataFrame({
-                        "Date": ["2026-09-02", "2026-09-03", "2026-09-04"],
-                        "Crop": [my_items[0]['crop'], "Assorted", my_items[-1]['crop']],
-                        "Qty (kg)": [50, 15, 25],
-                        "Status": ["Delivered", "Delivered", "In Transit"]
-                    }), hide_index=True, use_container_width=True)
-
-                st.write("---")
-                st.write("### 📦 Manage Active Listings")
-                for item in my_items:
-                    with st.container(border=True):
-                        col_info, col_act = st.columns([4, 1])
-                        with col_info:
-                            st.write(f"**{item['emoji']} {item['crop']}** | Listed at: ₹{item['price']}/kg | Available: {item['stock']}kg")
-                        with col_act:
-                            st.button("Edit Listing", key=f"edit_{item['crop']}")
+                    st.dataframe(pd.DataFrame({"Date": ["2026-09-02", "2026-09-01", "2026-08-28"], "Crop": [my_items[0]['crop'], "Assorted", "Onion"], "Qty (kg)": [50, 15, 100], "Status": ["Delivered", "Delivered", "Processing"]}), hide_index=True, use_container_width=True)
             else:
                 st.info("You haven't listed any crops yet. Add a crop to view your analytics!")
                 
         with tab3:
+            st.write("### 🧠 Machine Learning Price Engine")
             acres = st.number_input("Land Size (Acres)", min_value=0.1, value=1.0)
             yield_per_acre = st.number_input("Expected Yield per Acre (kg)", min_value=50, value=2000)
-            est_price = st.number_input("Expected Selling Price (₹/kg)", min_value=1, value=30)
+            col1, col2 = st.columns(2)
+            with col1: upcoming_rain = st.number_input("Forecasted Rainfall (mm)", value=80)
+            with col2: upcoming_temp = st.number_input("Forecasted Temp (°C)", value=29)
             if st.button(lang_dict["calc"], type="primary"):
+                next_week_data = pd.DataFrame([[9, upcoming_rain, upcoming_temp, 105]], columns=['month', 'rain_mm', 'temp_c', 'demand_index'])
+                predicted_price = ai_model.predict(next_week_data)[0]
                 st.success(f"🌾 Estimated Harvest: **{acres * yield_per_acre:,.0f} kg**")
-                st.info(f"💰 Projected Revenue: **₹{(acres * yield_per_acre) * est_price:,.2f}**")
+                st.info(f"📈 AI Predicted Selling Price: **₹{predicted_price:.2f} per kg**")
+                st.info(f"💰 Projected Total Revenue: **₹{(acres * yield_per_acre) * predicted_price:,.2f}**")
 
         with tab4:
             st.subheader("🚚 Active Truck Pools")
@@ -263,134 +257,120 @@ if st.session_state.user_role == "Farmer":
     elif st.session_state.current_page == "Farmer_Features":
         st.button("⬅️ Back to Farmer Hub", on_click=change_page, args=("Farmer_Hub",))
         st.title("🛠️ Helpful Features")
-        
-        t1, t2, t3, t4, t5, t6 = st.tabs(["🏛️ Schemes", "🧪 Inputs", "📖 Guide", "🤝 B2B Contracts", "🌿 AI Scanner", "💬 Q&A"])
+        t1, t2, t3, t4 = st.tabs(["🏛️ Government Schemes", "🧪 Agricultural Inputs & Pesticides", "🤝 B2B Contracts", "💬 Community Q&A"])
         
         with t1:
-            st.subheader("National & State Subsidies")
-            col1, col2 = st.columns(2)
-            with col1:
-                with st.container(border=True):
-                    st.write("### PM-KISAN Samman Nidhi")
-                    st.caption("₹6,000 per year minimum income support.")
-                    st.button("Check Eligibility", key="s1")
-                with st.container(border=True):
-                    st.write("### PM-KUSUM Yojana")
-                    st.caption("Up to 60% subsidy on Solar Water Pumps.")
-                    st.button("Apply for Solar", key="s2")
-            with col2:
-                with st.container(border=True):
-                    st.write("### e-NAM Registration")
-                    st.caption("National Agriculture Market pan-India trading.")
-                    st.button("Register on e-NAM", key="s3")
-                with st.container(border=True):
-                    st.write("### Kisan Credit Card (KCC)")
-                    st.caption("Subsidized credit rates for agricultural inputs.")
-                    st.button("Apply for KCC", key="s4")
-                    
+            st.subheader("Direct Subsidies & Government Portals")
+            with st.expander("✅ PM-KISAN Samman Nidhi (Central Govt)"):
+                st.write("**Benefit:** ₹6,000 per year distributed in 3 direct payments of ₹2,000.")
+                st.write("**Eligibility:** Small and marginal landholding farmer families.")
+                st.link_button("🌐 Open Official PM-KISAN Portal ↗️", "https://pmkisan.gov.in/")
+            with st.expander("✅ Telangana Rythu Bharosa / Rythu Bandhu"):
+                st.write("**Benefit:** Financial crop investment assistance deposited directly into Aadhaar-linked accounts.")
+                st.write("**Eligibility:** Land-owning farmers and registered cultivators in Telangana.")
+                st.link_button("🌐 Open Official Telangana Portal ↗️", "https://rythubharosa.telangana.gov.in/")
+                
         with t2:
-            st.subheader("Direct Input Ordering (Subsidized Rates)")
-            p_col1, p_col2, p_col3 = st.columns(3)
-            with p_col1:
+            st.subheader("Direct Agricultural Inputs & Pesticide Ordering")
+            r1_c1, r1_c2, r1_c3 = st.columns(3)
+            with r1_c1:
                 with st.container(border=True):
                     st.write("### 🌿 Neem Oil (1L)")
+                    st.caption("Bio-insecticide (10,000 PPM)")
                     st.button("Add - ₹250", key="i1", on_click=add_to_cart, args=("farmer", "Neem Oil (1L)", 250), use_container_width=True)
+            with r1_c2:
                 with st.container(border=True):
-                    st.write("### 🪤 Pheromone Traps")
-                    st.button("Add - ₹180", key="i4", on_click=add_to_cart, args=("farmer", "Pheromone Trap (Set of 5)", 180), use_container_width=True)
+                    st.write("### 🧪 Chlorpyrifos (500ml)")
+                    st.caption("Pest control for stem borer & termites")
+                    st.button("Add - ₹280", key="i2", on_click=add_to_cart, args=("farmer", "Chlorpyrifos (500ml)", 280), use_container_width=True)
+            with r1_c3:
                 with st.container(border=True):
-                    st.write("### 🍅 High-Yield Seeds")
-                    st.button("Add - ₹150", key="i7", on_click=add_to_cart, args=("farmer", "Tomato Seeds (50g)", 150), use_container_width=True)
-            with p_col2:
+                    st.write("### 🍄 Trichoderma (1kg)")
+                    st.caption("Bio-fungicide for root rot & wilt")
+                    st.button("Add - ₹320", key="i3", on_click=add_to_cart, args=("farmer", "Trichoderma (1kg)", 320), use_container_width=True)
+
+            r2_c1, r2_c2, r2_c3 = st.columns(3)
+            with r2_c1:
                 with st.container(border=True):
-                    st.write("### 🛡️ Trichoderma (Bio)")
-                    st.button("Add - ₹300", key="i2", on_click=add_to_cart, args=("farmer", "Trichoderma Viride (1kg)", 300), use_container_width=True)
+                    st.write("### 💧 Drip Irrigation Kit")
+                    st.caption("Full 1-Acre micro-irrigation set")
+                    st.button("Add - ₹1500", key="i4", on_click=add_to_cart, args=("farmer", "Drip Kit", 1500), use_container_width=True)
+            with r2_c2:
                 with st.container(border=True):
-                    st.write("### 🟨 Sticky Traps")
-                    st.button("Add - ₹120", key="i5", on_click=add_to_cart, args=("farmer", "Yellow Sticky Traps (10 pcs)", 120), use_container_width=True)
+                    st.write("### 🌱 Hybrid F1 Seeds")
+                    st.caption("High-germination disease-resistant pack")
+                    st.button("Add - ₹400", key="i5", on_click=add_to_cart, args=("farmer", "Hybrid Seeds", 400), use_container_width=True)
+            with r2_c3:
                 with st.container(border=True):
-                    st.write("### 💧 Drip Emitters")
-                    st.button("Add - ₹850", key="i8", on_click=add_to_cart, args=("farmer", "Drip Kit (100pcs)", 850), use_container_width=True)
-            with p_col3:
-                with st.container(border=True):
-                    st.write("### ⚡ NPK Fertilizer")
-                    st.button("Add - ₹450", key="i3", on_click=add_to_cart, args=("farmer", "NPK 19:19:19 (1kg)", 450), use_container_width=True)
-                with st.container(border=True):
-                    st.write("### 🌱 Rhizobium Base")
-                    st.button("Add - ₹220", key="i6", on_click=add_to_cart, args=("farmer", "Rhizobium Bio-fertilizer", 220), use_container_width=True)
-                with st.container(border=True):
-                    st.write("### 🚜 Mini Tractor Rent")
-                    st.button("Add - ₹1200", key="i9", on_click=add_to_cart, args=("farmer", "Tractor Rental (Per Day)", 1200), use_container_width=True)
-                    
+                    st.write("### 🪱 Vermicompost (50kg)")
+                    st.caption("100% Organic Soil Conditioner")
+                    st.button("Add - ₹450", key="i6", on_click=add_to_cart, args=("farmer", "Vermicompost (50kg)", 450), use_container_width=True)
+
             if st.session_state.farmer_cart:
                 st.write("---")
                 st.subheader("🛒 Your Input Cart")
-                for item in st.session_state.farmer_cart:
-                    st.write(f"- {item['name']}: ₹{item['price']}")
-                st.write(f"**{lang_dict['cart_total']} {sum(item['price'] for item in st.session_state.farmer_cart)}**")
+                for item in st.session_state.farmer_cart: st.write(f"- {item['name']}: ₹{item['price']}")
                 st.button(lang_dict["buy_now"], on_click=checkout, args=("farmer",), type="primary")
-
-        with t3:
-            st.subheader("Farming Best Practices")
-            with st.expander("🌱 Soil Preparation & Testing"): st.write("- Ensure deep ploughing.\n- Test soil pH every 2 years.")
-            with st.expander("💧 Efficient Water Management"): st.write("- Adopt drip irrigation to save up to 40% water.")
-            with st.expander("🛡️ Integrated Pest Management"): st.write("- Use sticky traps and pheromone traps.")
-
-        with t4:
-            st.subheader("Active Wholesale Contracts")
-            st.info("🏢 **Taj Hotels** requires: 500kg of Onions | Target Price: ₹30/kg")
-            if st.button("Accept Taj Contract", type="primary"): st.success("Contract secured!")
-            
-        with t5:
-            st.subheader("AI Crop Health Scanner")
-            uploaded_file = st.file_uploader("Upload leaf image (JPG/PNG)", type=["jpg", "png"])
-            if uploaded_file and st.button("Analyze Image", type="primary"):
-                with st.spinner("Scanning..."): time.sleep(2) 
-                st.error("⚠️ **Detected:** Early Blight (87% Confidence)")
                 
-        with t6:
-            st.subheader("Community Q&A")
-            with st.chat_message("user"): st.write("How do I protect tomatoes from heavy rain?")
-            with st.chat_message("assistant"): st.write("Ensure proper field drainage and use raised beds. - *Farmer Suresh*")
-            st.chat_input(lang_dict["qa_input"])
+        with t3:
+            st.subheader("📝 Secure B2B Supply Contracts")
+            st.info("💡 **What is B2B (Business-to-Business)?** Direct bulk supply agreements between farmers and bulk commercial buyers (like supermarkets, hotels, hostels, and processors) with guaranteed advance pricing and zero middlemen.")
+            with st.form("b2b_form"):
+                st.selectbox("Select Business Buyer", ["Reliance Fresh - Mallapur Hub", "Karachi Bakery Bulk Procurement", "Secunderabad Wholesale Mandi", "Swiggy Instamart Warehouse"])
+                st.text_input("Crop for Bulk Supply", placeholder="e.g., Hybrid Tomatoes, Red Onions")
+                st.number_input("Monthly Guaranteed Volume (kg)", min_value=100, step=50)
+                st.number_input("Agreed Contract Price (₹/kg)", min_value=10, value=25)
+                if st.form_submit_button("Initiate Direct Contract", type="primary"):
+                    st.success("✅ Official B2B Contract proposal registered and sent to buyer procurement team!")
+                    
+        with t4:
+            st.subheader("💬 Community Farmer Q&A")
+            st.write("Ask agricultural questions and get solutions from agronomists and verified farmers.")
+            
+            with st.form("new_qa_form"):
+                q_author = st.text_input("Your Name / Village", value=f"{st.session_state.username} (Mallapur)")
+                q_text = st.text_input("Type your farming question...")
+                submit_q = st.form_submit_button("Post Question to Community")
+                if submit_q and q_text.strip():
+                    st.session_state.qa_threads.insert(0, {
+                        "author": q_author,
+                        "question": q_text.strip(),
+                        "answer": "⏳ Awaiting expert/farmer review."
+                    })
+                    st.success("✅ Question posted to community board!")
+                    st.rerun()
+
+            st.write("---")
+            st.write("### 📌 Active Discussions")
+            for thread in st.session_state.qa_threads:
+                with st.container(border=True):
+                    st.write(f"**❓ {thread['question']}**")
+                    st.caption(f"Asked by: {thread['author']}")
+                    st.info(f"**💡 Solution:** {thread['answer']}")
 
     elif st.session_state.current_page == "Success":
         st.balloons()
-        st.title("🎉 Agricultural Inputs Ordered Successfully!")
+        st.title("🎉 Order Placed Successfully!")
         if st.session_state.last_order:
-            st.write("---")
-            st.subheader("🧾 AgriConnect B2B Digital Invoice")
-            total = sum(item['price'] for item in st.session_state.last_order)
-            gst = total * 0.05 
-            
-            st.code(f"""
-====================================
-        FARMER INPUT TAX INVOICE
-====================================
-Date: {time.strftime("%Y-%m-%d %H:%M")}
-------------------------------------
-Items Purchased:
-""")
-            for item in st.session_state.last_order:
-                st.code(f"{item['name']:<25} ₹{item['price']:.2f}")
-                
-            st.code(f"""
-------------------------------------
-Subtotal:                 ₹{total:.2f}
-Agri-GST (5%):            ₹{gst:.2f}
-------------------------------------
-TOTAL AMOUNT PAID:        ₹{total + gst:.2f}
-====================================
-🚚 Expected Delivery: Tomorrow by 10 AM
-====================================
-            """)
-        st.button("⬅️ Back to Features", on_click=change_page, args=("Farmer_Features",), type="primary")
+            st.write("### 🧾 Official Invoice")
+            subtotal = sum(item['price'] for item in st.session_state.last_order)
+            with st.container(border=True):
+                st.write(f"**Purchaser:** {st.session_state.username}")
+                st.write("**Order Type:** Agricultural Inputs (B2B)")
+                st.write("---")
+                for item in st.session_state.last_order:
+                    st.write(f"✔️ {item['name']}: ₹{item['price']:.2f}")
+                st.write("---")
+                gst = subtotal * 0.05
+                st.write(f"**Subtotal:** ₹{subtotal:.2f}")
+                st.write(f"**Agri-GST (5%):** ₹{gst:.2f}")
+                st.write(f"### **Total Paid: ₹{subtotal + gst:.2f}**")
+            st.button("⬅️ Back to Features", on_click=change_page, args=("Farmer_Features",), type="primary")
 
 # ==========================================
-# 6. CUSTOMER ROUTES
+# 7. CUSTOMER ROUTES
 # ==========================================
 elif st.session_state.user_role == "Customer":
-    
     if st.session_state.current_page == "Buyer":
         st.title("🛒 Fresh Produce Market")
         st.subheader("🚚 Active Deliveries")
@@ -399,10 +379,16 @@ elif st.session_state.user_role == "Customer":
             st.progress(75); st.caption("Status: Out for delivery | Partner: Ravi")
         st.write("---")
 
+        # Cleaned-up Filter and Search Row
         col_search, col_filter, col_btn = st.columns([3, 2, 1])
-        with col_search: search_query = st.text_input(lang_dict["search_ph"], label_visibility="collapsed")
-        with col_filter: max_price = st.slider("Max Price (₹/kg)", min_value=10, max_value=200, value=200, label_visibility="collapsed")
-        with col_btn: st.button(lang_dict["voice_btn"])
+        with col_search: 
+            search_query = st.text_input(lang_dict["search_lbl"], placeholder=lang_dict["search_ph"])
+        with col_filter: 
+            max_price = st.slider(lang_dict["price_lbl"], min_value=10, max_value=200, value=200)
+        with col_btn: 
+            st.write("") # vertical spacing
+            st.write("")
+            st.button(lang_dict["voice_btn"], use_container_width=True)
 
         filtered_items = [item for item in st.session_state.market_items if (search_query.lower() in item['crop'].lower()) and (item['price'] <= max_price)]
         
@@ -427,32 +413,17 @@ elif st.session_state.user_role == "Customer":
         st.balloons()
         st.title("🎉 Order Placed Successfully!")
         if st.session_state.last_order:
-            st.write("---")
-            st.subheader("🧾 Auto-Generated Digital Invoice")
-            total = sum(item['price'] for item in st.session_state.last_order)
-            plat_fee = total * 0.02
-            savings = total * 0.20 
-            
-            st.code(f"""
-====================================
-        AGRICONNECT TAX INVOICE
-====================================
-Date: {time.strftime("%Y-%m-%d %H:%M")}
-------------------------------------
-Items Purchased:
-""")
-            for item in st.session_state.last_order:
-                st.code(f"{item['name']:<25} ₹{item['price']:.2f}")
-                
-            st.code(f"""
-------------------------------------
-Subtotal:                 ₹{total:.2f}
-Platform Fee (2%):        ₹{plat_fee:.2f}
-------------------------------------
-TOTAL AMOUNT PAID:        ₹{total + plat_fee:.2f}
-====================================
-💡 You saved ₹{savings:.2f} by buying 
-directly from local farmers!
-====================================
-            """)
-        st.button("⬅️ Back to Store", on_click=change_page, args=("Buyer",), type="primary")
+            st.write("### 🧾 Consumer Receipt")
+            subtotal = sum(item['price'] for item in st.session_state.last_order)
+            with st.container(border=True):
+                st.write(f"**Customer:** {st.session_state.username}")
+                st.write("---")
+                for item in st.session_state.last_order:
+                    st.write(f"✔️ {item['name']}: ₹{item['price']:.2f}")
+                st.write("---")
+                platform_fee = subtotal * 0.02
+                st.write(f"**Subtotal:** ₹{subtotal:.2f}")
+                st.write(f"**Platform Fee (2%):** ₹{platform_fee:.2f}")
+                st.write(f"### **Total Paid: ₹{subtotal + platform_fee:.2f}**")
+                st.success(f"🌱 You saved approximately ₹{(subtotal * 0.15):.2f} by buying direct from local farmers today!")
+            st.button("⬅️ Back to Store", on_click=change_page, args=("Buyer",), type="primary")
