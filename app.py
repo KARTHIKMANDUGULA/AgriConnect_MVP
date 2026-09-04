@@ -56,7 +56,6 @@ if 'buyer_cart' not in st.session_state: st.session_state.buyer_cart = []
 if 'last_order' not in st.session_state: st.session_state.last_order = []
 if 'order_type' not in st.session_state: st.session_state.order_type = ""
 
-# Persistent Q&A in session state
 if 'qa_threads' not in st.session_state:
     st.session_state.qa_threads = [
         {"author": "Suresh (Medchal)", "question": "What is the best treatment for early tomato blight?", "answer": "Copper oxychloride spray (2.5g/L) during early vegetative stages helps control fungal spread."},
@@ -120,11 +119,11 @@ if st.session_state.authenticated:
     st.sidebar.button("🚪 Logout", on_click=logout_user, use_container_width=True)
 
 # ==========================================
-# 5. START SCREEN (LOGIN)
+# 5. START SCREEN (LOGIN & SECURE SIGN UP)
 # ==========================================
 if not st.session_state.authenticated:
     st.title("🌾 Welcome to AgriConnect")
-    st.write("Select your portal to continue.")
+    st.write("Select your portal to continue or create an authorized account.")
     st.write("---")
     if st.session_state.login_step == "Select":
         col1, col2 = st.columns(2)
@@ -140,20 +139,62 @@ if not st.session_state.authenticated:
     elif st.session_state.login_step == "Farmer_Login":
         st.button("⬅️ Back to Selection", on_click=set_login_step, args=("Select",))
         with st.container(border=True):
-            st.title("👨‍🌾 Farmer Login")
-            with st.form("farmer_auth_form"):
-                f_u = st.text_input("Username", placeholder="Enter username (e.g., ramesh)")
-                f_p = st.text_input("Password", type="password", placeholder="Enter password")
-                if st.form_submit_button("Sign In", type="primary", use_container_width=True): login_user(f_u, f_p, "Farmer")
+            st.title("👨‍🌾 Farmer Portal")
+            tab_in, tab_up = st.tabs(["Sign In", "Create Account"])
+            with tab_in:
+                with st.form("farmer_auth_form"):
+                    f_u = st.text_input("Username", placeholder="Enter username (e.g., ramesh)")
+                    f_p = st.text_input("Password", type="password", placeholder="Enter password")
+                    if st.form_submit_button("Sign In", type="primary", use_container_width=True): login_user(f_u, f_p, "Farmer")
+            with tab_up:
+                with st.form("farmer_reg_form"):
+                    r_u = st.text_input("Choose Username", placeholder="e.g., rajesh_farm")
+                    r_p = st.text_input("Choose Password", type="password", placeholder="Create password")
+                    r_key = st.text_input("Admin Security Key", type="password", placeholder="Enter team security key")
+                    if st.form_submit_button("Register Account", type="primary", use_container_width=True):
+                        if r_key == "adminkarthik13":
+                            if r_u and r_p:
+                                try:
+                                    cursor = db_conn.cursor()
+                                    cursor.execute("INSERT INTO Users (username, password, role) VALUES (?, ?, ?)", (r_u.strip().lower(), r_p, "Farmer"))
+                                    db_conn.commit()
+                                    st.success("✅ Account created successfully! Switch to 'Sign In' and log in.")
+                                except sqlite3.IntegrityError:
+                                    st.error("❌ Username already exists. Choose another one.")
+                            else:
+                                st.warning("⚠️ Please fill in all fields.")
+                        else:
+                            st.error("❌ Invalid Admin Security Key! Access denied.")
                     
     elif st.session_state.login_step == "Customer_Login":
         st.button("⬅️ Back to Selection", on_click=set_login_step, args=("Select",))
         with st.container(border=True):
-            st.title("🛒 Customer Login")
-            with st.form("buyer_auth_form"):
-                b_u = st.text_input("Username", placeholder="Enter username (e.g., anita)")
-                b_p = st.text_input("Password", type="password", placeholder="Enter password")
-                if st.form_submit_button("Sign In", type="primary", use_container_width=True): login_user(b_u, b_p, "Customer")
+            st.title("🛒 Customer Portal")
+            tab_in, tab_up = st.tabs(["Sign In", "Create Account"])
+            with tab_in:
+                with st.form("buyer_auth_form"):
+                    b_u = st.text_input("Username", placeholder="Enter username (e.g., anita)")
+                    b_p = st.text_input("Password", type="password", placeholder="Enter password")
+                    if st.form_submit_button("Sign In", type="primary", use_container_width=True): login_user(b_u, b_p, "Customer")
+            with tab_up:
+                with st.form("buyer_reg_form"):
+                    r_u = st.text_input("Choose Username", placeholder="e.g., rahul_buyer")
+                    r_p = st.text_input("Choose Password", type="password", placeholder="Create password")
+                    r_key = st.text_input("Admin Security Key", type="password", placeholder="Enter team security key")
+                    if st.form_submit_button("Register Account", type="primary", use_container_width=True):
+                        if r_key == "adminkarthik13":
+                            if r_u and r_p:
+                                try:
+                                    cursor = db_conn.cursor()
+                                    cursor.execute("INSERT INTO Users (username, password, role) VALUES (?, ?, ?)", (r_u.strip().lower(), r_p, "Customer"))
+                                    db_conn.commit()
+                                    st.success("✅ Account created successfully! Switch to 'Sign In' and log in.")
+                                except sqlite3.IntegrityError:
+                                    st.error("❌ Username already exists. Choose another one.")
+                            else:
+                                st.warning("⚠️ Please fill in all fields.")
+                        else:
+                            st.error("❌ Invalid Admin Security Key! Access denied.")
     st.stop()
 
 # ==========================================
@@ -379,14 +420,13 @@ elif st.session_state.user_role == "Customer":
             st.progress(75); st.caption("Status: Out for delivery | Partner: Ravi")
         st.write("---")
 
-        # Cleaned-up Filter and Search Row
         col_search, col_filter, col_btn = st.columns([3, 2, 1])
         with col_search: 
             search_query = st.text_input(lang_dict["search_lbl"], placeholder=lang_dict["search_ph"])
         with col_filter: 
             max_price = st.slider(lang_dict["price_lbl"], min_value=10, max_value=200, value=200)
         with col_btn: 
-            st.write("") # vertical spacing
+            st.write("") 
             st.write("")
             st.button(lang_dict["voice_btn"], use_container_width=True)
 
